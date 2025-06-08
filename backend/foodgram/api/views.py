@@ -14,7 +14,8 @@ from rest_framework.response import Response
 
 from .pagination import CustomPagination
 from .permissions import IsAuthorOrReadOnly
-from recipes.models import Ingredient, Tag, Recipe, Follow, IngredientInRecipe, ShoppingCart, Favorite
+from recipes.models import (Ingredient, Tag, Recipe, Follow, 
+                            IngredientInRecipe, ShoppingCart, Favorite)
 
 from .serializers import (IngredientSerializer, TagSerializer,
                           CustomUserSerializer, AvatarSerializer,
@@ -103,7 +104,7 @@ class CustomUserViewSet(UserViewSet):
                             status=status.HTTP_204_NO_CONTENT)
         return Response(f'Вы не подписаны на {author}',
                         status=status.HTTP_400_BAD_REQUEST)
- 
+
     @action(detail=False, methods=['PUT', 'DELETE'], url_path='me/avatar')
     def update_avatar(self, request):
         user = request.user
