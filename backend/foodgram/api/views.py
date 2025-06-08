@@ -14,12 +14,12 @@ from rest_framework.response import Response
 
 from .pagination import CustomPagination
 from .permissions import IsAuthorOrReadOnly
-from recipes.models import (Ingredient, Tag, Recipe, Follow, 
+from recipes.models import (Ingredient, Tag, Recipe, Follow,
                             IngredientInRecipe, ShoppingCart, Favorite)
 
 from .serializers import (IngredientSerializer, TagSerializer,
                           CustomUserSerializer, AvatarSerializer,
-                          RecipeSerializer, FollowSerializer, 
+                          RecipeSerializer, FollowSerializer,
                           CreateRecipeSerializer, AddFavoritesSerializer)
 from users.models import User
 from .filters import IngredientFilter, RecipeFilter
