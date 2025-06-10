@@ -20,7 +20,7 @@ from recipes.models import (Ingredient, Tag, Recipe, Follow,
 from .serializers import (IngredientSerializer, TagSerializer,
                           UserProfileSerializer, AvatarSerializer,
                           RecipeSerializer, FollowSerializer,
-                          CreateRecipeSerializer, AddFavoritesSerializer)
+                          CreateRecipeSerializer)
 from users.models import User
 from .filters import IngredientFilter, RecipeFilter
 

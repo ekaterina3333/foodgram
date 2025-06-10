@@ -72,7 +72,6 @@ class UserProfileSerializer(serializers.ModelSerializer):
             'author': obj.id
         }
 
-        # Валидация для подписки
         if request.method == 'POST':
             if request.user == obj:
                 raise serializers.ValidationError(
@@ -84,7 +83,6 @@ class UserProfileSerializer(serializers.ModelSerializer):
                     {"error": "Вы уже подписаны на этого пользователя"}
                 )
 
-        # Валидация для отписки
         elif request.method == 'DELETE':
             if not Follow.objects.filter(**data).exists():
                 raise serializers.ValidationError(
@@ -155,7 +153,7 @@ class FollowSerializer(UserProfileSerializer):
         Валидация для подписки/отписки
         """
         request = self.context.get('request')
-        author = self.instance  # Объект, на которого подписываемся
+        author = self.instance
 
         if not request or not request.user.is_authenticated:
             raise ValidationError("Требуется авторизация")
@@ -197,7 +195,6 @@ class FollowSerializer(UserProfileSerializer):
         """Метод для получения количества рецептов"""
 
         return obj.recipes.count()
-    
 
 
 class IngredientInRecipeSerializer(serializers.ModelSerializer):
