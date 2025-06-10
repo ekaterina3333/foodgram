@@ -1,18 +1,16 @@
 import django_filters
-from django_filters import rest_framework
-from django_filters.rest_framework import FilterSet
+from rest_framework.filters import SearchFilter
 
-from recipes.models import Ingredient, Recipe, Tag
+from recipes.models import Recipe, Tag
 
 
-class IngredientFilter(FilterSet):
+class IngredientFilter(SearchFilter):
     """Поиск по названию ингредиента."""
 
-    name = rest_framework.CharFilter(lookup_expr='istartswith')
+    search_param = 'name'
 
-    class Meta:
-        model = Ingredient
-        fields = ('name', )
+    def get_search_fields(self, view, request):
+        return ['name__istartswith']
 
 
 class RecipeFilter(django_filters.FilterSet):
@@ -21,9 +19,9 @@ class RecipeFilter(django_filters.FilterSet):
         queryset=Tag.objects.all(),
         field_name='tags__slug',
         to_field_name='slug')
-    is_favorited = django_filters.filters.NumberFilter(
+    is_favorited = django_filters.filters.BooleanFilter(
         method='is_recipe_in_favorites_filter')
-    is_in_shopping_cart = django_filters.filters.NumberFilter(
+    is_in_shopping_cart = django_filters.filters.BooleanFilter(
         method='is_recipe_in_shoppingcart_filter')
 
     def is_recipe_in_favorites_filter(self, queryset, name, value):

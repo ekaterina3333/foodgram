@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from djoser.serializers import UserSerializer
 from rest_framework.serializers import ModelSerializer
-from djoser.serializers import UserCreateSerializer
+from django.core.exceptions import ValidationError
 from drf_extra_fields.fields import Base64ImageField
 from recipes.models import (Ingredient, Tag, TagInRecipe, Follow,
                             IngredientInRecipe, Recipe, Favorite, ShoppingCart)
@@ -38,7 +38,7 @@ class TagSerializer(ModelSerializer):
         fields = ('id', 'name', 'slug')
 
 
-class CustomUserSerializer(UserCreateSerializer):
+class UserProfileSerializer(serializers.ModelSerializer):
     """Сериализатор для модели User."""
 
     is_subscribed = serializers.SerializerMethodField()
@@ -60,6 +60,38 @@ class CustomUserSerializer(UserCreateSerializer):
 
     def get_avatar(self, obj):
         return obj.avatar.url if obj.avatar else None
+
+    def get_subscribe(self, obj):
+        """Метод для валидации подписки/отписки"""
+        request = self.context.get('request')
+        if not request or not request.user.is_authenticated:
+            return None
+
+        data = {
+            'user': request.user.id,
+            'author': obj.id
+        }
+
+        # Валидация для подписки
+        if request.method == 'POST':
+            if request.user == obj:
+                raise serializers.ValidationError(
+                    {"error": "Нельзя подписаться на самого себя"}
+                )
+
+            if Follow.objects.filter(**data).exists():
+                raise serializers.ValidationError(
+                    {"error": "Вы уже подписаны на этого пользователя"}
+                )
+
+        # Валидация для отписки
+        elif request.method == 'DELETE':
+            if not Follow.objects.filter(**data).exists():
+                raise serializers.ValidationError(
+                    {"error": "Вы не подписаны на этого пользователя"}
+                )
+
+        return None
 
 
 class AvatarSerializer(serializers.ModelSerializer):
@@ -89,17 +121,6 @@ class AvatarSerializer(serializers.ModelSerializer):
         return instance
 
 
-class CustomCreateUserSerializer(CustomUserSerializer):
-    """Сериализатор для создания пользователя"""
-
-    class Meta:
-
-        model = User
-        fields = ('email', 'id', 'username', 'first_name',
-                  'last_name', 'password')
-        extra_kwargs = {'password': {'write_only': True}}
-
-
 class AdditionalForRecipeSerializer(serializers.ModelSerializer):
     """Дополнительный сериализатор для рецептов """
 
@@ -110,7 +131,7 @@ class AdditionalForRecipeSerializer(serializers.ModelSerializer):
         fields = ('id', 'name', 'image', 'cooking_time')
 
 
-class FollowSerializer(CustomUserSerializer):
+class FollowSerializer(UserProfileSerializer):
     """Сериализатор для модели Follow."""
 
     recipes = serializers.SerializerMethodField(
@@ -119,13 +140,48 @@ class FollowSerializer(CustomUserSerializer):
     recipes_count = serializers.SerializerMethodField(
         read_only=True
     )
+    is_subscribed = serializers.SerializerMethodField()
 
     class Meta:
         """Мета-параметры сериализатора"""
 
         model = User
-        fields = ('email', 'id', 'username', 'first_name', 'last_name',
-                  'is_subscribed', 'recipes', 'recipes_count',)
+        fields = UserProfileSerializer.Meta.fields + ('recipes',
+                                                      'recipes_count')
+        read_only_fields = ('email', 'username', 'first_name', 'last_name')
+
+    def validate(self, data):
+        """
+        Валидация для подписки/отписки
+        """
+        request = self.context.get('request')
+        author = self.instance  # Объект, на которого подписываемся
+
+        if not request or not request.user.is_authenticated:
+            raise ValidationError("Требуется авторизация")
+
+        if request.method == 'POST':
+            self._validate_subscription(author, request.user)
+        elif request.method == 'DELETE':
+            self._validate_unsubscription(author, request.user)
+
+        return data
+
+    def _validate_subscription(self, author, user):
+        if user == author:
+            raise ValidationError(
+                {"error": "Нельзя подписаться на самого себя"}
+            )
+        if Follow.objects.filter(user=user, author=author).exists():
+            raise ValidationError(
+                {"error": "Вы уже подписаны на этого пользователя"}
+            )
+
+    def _validate_unsubscription(self, author, user):
+        if not Follow.objects.filter(user=user, author=author).exists():
+            raise ValidationError(
+                {"error": "Вы не подписаны на этого пользователя"}
+            )
 
     def get_recipes(self, obj):
         """Метод для получения рецептов"""
@@ -141,6 +197,7 @@ class FollowSerializer(CustomUserSerializer):
         """Метод для получения количества рецептов"""
 
         return obj.recipes.count()
+    
 
 
 class IngredientInRecipeSerializer(serializers.ModelSerializer):

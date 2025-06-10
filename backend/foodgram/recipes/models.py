@@ -2,6 +2,8 @@ from django.contrib.auth import get_user_model
 from django.core.validators import MinValueValidator
 from django.db import models
 
+from .constants import MAX_LENGTH, MAX_LENGTH_TAG
+
 User = get_user_model()
 
 
@@ -9,12 +11,12 @@ class Ingredient(models.Model):
     """Модель для описания ингредиента"""
 
     name = models.CharField(
-        max_length=200,
+        max_length=MAX_LENGTH,
         db_index=True,
         verbose_name='Название ингредиента')
 
     measurement_unit = models.CharField(
-        max_length=200,
+        max_length=MAX_LENGTH,
         verbose_name='Единицы измерения')
 
     class Meta:
@@ -22,6 +24,12 @@ class Ingredient(models.Model):
         ordering = ('name',)
         verbose_name = 'Ингредиент'
         verbose_name_plural = 'Ингредиенты'
+        constraints = [
+            models.UniqueConstraint(
+                fields=['name', 'measurement_unit'],
+                name='unique_ingredient'
+            )
+        ]
 
     def __str__(self):
 
@@ -32,11 +40,11 @@ class Tag(models.Model):
     """Модель для описания тега"""
 
     name = models.CharField(
-        max_length=32,
+        max_length=MAX_LENGTH_TAG,
         unique=True,
         verbose_name='Уникальное название')
     slug = models.SlugField(
-        max_length=32,
+        max_length=MAX_LENGTH_TAG,
         unique=True,
         verbose_name='Уникальный слаг')
 
@@ -51,7 +59,7 @@ class Recipe(models.Model):
         verbose_name='Автор рецепта',
     )
     name = models.CharField(
-        max_length=200,
+        max_length=MAX_LENGTH,
         default="Без названия",
         verbose_name='Название рецепта'
     )
@@ -107,6 +115,10 @@ class Follow(models.Model):
         constraints = [
             models.UniqueConstraint(
                 fields=['user', 'author'], name='unique_follow'
+            ),
+            models.CheckConstraint(
+                check=~models.Q(user=models.F('author')),
+                name='prevent_self_follow'
             )
         ]
 
@@ -186,8 +198,39 @@ class TagInRecipe(models.Model):
         return f'{self.tag} {self.recipe}'
 
 
-class ShoppingCart(models.Model):
-    """Модель для описания формирования покупок """
+class UserRecipeBaseModel(models.Model):
+    """Абстрактная базовая модель для связи пользователя и рецепта"""
+
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        verbose_name='Пользователь'
+    )
+    recipe = models.ForeignKey(
+        Recipe,
+        on_delete=models.CASCADE,
+        verbose_name='Рецепт'
+    )
+
+    class Meta:
+        abstract = True
+        constraints = [
+            models.UniqueConstraint(
+                fields=['user', 'recipe'],
+                name='unique_%(app_label)s_%(class)s'
+            )
+        ]
+
+    def __str__(self):
+        return f'{self.user} {self.recipe}'
+
+
+class ShoppingCart(UserRecipeBaseModel):
+    """Модель списка покупок, наследуется от базовой"""
+
+    class Meta(UserRecipeBaseModel.Meta):
+        verbose_name = 'Список покупок'
+        verbose_name_plural = 'Списки покупок'
 
     user = models.ForeignKey(
         User,
@@ -202,25 +245,13 @@ class ShoppingCart(models.Model):
         verbose_name='Рецепт'
     )
 
-    class Meta:
-        """Мета-параметры модели"""
 
-        verbose_name = 'Список покупок'
-        verbose_name_plural = 'Списки покупок'
-        constraints = [
-            models.UniqueConstraint(
-                fields=['user', 'recipe'], name='unique_shoppingcart'
-            )
-        ]
+class Favorite(UserRecipeBaseModel):
+    """Модель избранного, наследуется от базовой"""
 
-    def __str__(self):
-        """Метод строкового представления модели."""
-
-        return f'{self.user} {self.recipe}'
-
-
-class Favorite(models.Model):
-    """Модель для создания избранного."""
+    class Meta(UserRecipeBaseModel.Meta):
+        verbose_name = 'Избранное'
+        verbose_name_plural = 'Избранное'
 
     user = models.ForeignKey(
         User,
@@ -234,19 +265,3 @@ class Favorite(models.Model):
         related_name='favorites',
         verbose_name='Рецепт'
     )
-
-    class Meta:
-        """Мета-параметры модели"""
-
-        verbose_name = 'Избранное'
-        verbose_name_plural = 'Избранное'
-        constraints = [
-            models.UniqueConstraint(
-                fields=['user', 'recipe'], name='unique_favorite'
-            )
-        ]
-
-    def __str__(self):
-        """Метод строкового представления модели."""
-
-        return f'{self.user} {self.recipe}'
