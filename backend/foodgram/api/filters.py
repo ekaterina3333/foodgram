@@ -9,9 +9,6 @@ class IngredientFilter(SearchFilter):
 
     search_param = 'name'
 
-    def get_search_fields(self, view, request):
-        return ['name__istartswith']
-
 
 class RecipeFilter(django_filters.FilterSet):
     """ Фильтр для отображения избранного и списка покупок"""
@@ -25,7 +22,7 @@ class RecipeFilter(django_filters.FilterSet):
         method='is_recipe_in_shoppingcart_filter')
 
     def is_recipe_in_favorites_filter(self, queryset, name, value):
-        if value == 1:
+        if value:
             user = self.request.user
             return queryset.filter(favorites__user_id=user.id)
         return queryset

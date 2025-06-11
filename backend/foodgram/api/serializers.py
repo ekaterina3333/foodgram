@@ -249,6 +249,26 @@ class RecipeSerializer(serializers.ModelSerializer):
             user=request.user, recipe=obj
         ).exists()
 
+    def validate_recipe_in_favorite(self, recipe, user):
+        if Favorite.objects.filter(user=user, recipe=recipe).exists():
+            raise serializers.ValidationError(
+                f'Рецепт "{recipe.name}" уже в избранном.')
+
+    def validate_recipe_not_in_favorite(self, recipe, user):
+        if not Favorite.objects.filter(user=user, recipe=recipe).exists():
+            raise serializers.ValidationError(
+                f'Рецепта "{recipe.name}" нет в избранном.')
+
+    def validate_recipe_in_cart(self, recipe, user):
+        if ShoppingCart.objects.filter(user=user, recipe=recipe).exists():
+            raise serializers.ValidationError(
+                f'Рецепт "{recipe.name}" уже в корзине.')
+
+    def validate_recipe_not_in_cart(self, recipe, user):
+        if not ShoppingCart.objects.filter(user=user, recipe=recipe).exists():
+            raise serializers.ValidationError(
+                f'Рецепта "{recipe.name}" нет в корзине.')
+
 
 class CreateIngredientsInRecipeSerializer(serializers.ModelSerializer):
     """Сериализатор для ингредиентов в рецептах"""

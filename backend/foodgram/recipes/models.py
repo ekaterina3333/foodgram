@@ -232,19 +232,6 @@ class ShoppingCart(UserRecipeBaseModel):
         verbose_name = 'Список покупок'
         verbose_name_plural = 'Списки покупок'
 
-    user = models.ForeignKey(
-        User,
-        on_delete=models.CASCADE,
-        related_name='shopping_user',
-        verbose_name='Пользователь'
-    )
-    recipe = models.ForeignKey(
-        Recipe,
-        on_delete=models.CASCADE,
-        related_name='shopping_recipe',
-        verbose_name='Рецепт'
-    )
-
 
 class Favorite(UserRecipeBaseModel):
     """Модель избранного, наследуется от базовой"""
@@ -252,16 +239,3 @@ class Favorite(UserRecipeBaseModel):
     class Meta(UserRecipeBaseModel.Meta):
         verbose_name = 'Избранное'
         verbose_name_plural = 'Избранное'
-
-    user = models.ForeignKey(
-        User,
-        on_delete=models.CASCADE,
-        related_name='favorites',
-        verbose_name='Пользователь'
-    )
-    recipe = models.ForeignKey(
-        Recipe,
-        on_delete=models.CASCADE,
-        related_name='favorites',
-        verbose_name='Рецепт'
-    )

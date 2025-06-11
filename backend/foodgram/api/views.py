@@ -7,7 +7,7 @@ from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.decorators import action
 from rest_framework.pagination import LimitOffsetPagination
-from rest_framework import viewsets, status
+from rest_framework import viewsets, status, serializers
 from rest_framework.viewsets import ModelViewSet
 from djoser.views import UserViewSet
 from rest_framework.response import Response
@@ -41,7 +41,7 @@ class TagViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = (AllowAny,)
 
 
-class CustomUserViewSet(UserViewSet):
+class UserViewSet(UserViewSet):
     """Вьюсет для работы с обьектами класса User и подписки на авторов."""
 
     queryset = User.objects.all()
@@ -125,7 +125,7 @@ class RecipeViewSet(ModelViewSet):
     def get_serializer_class(self):
         """Метод для вызова определенного сериализатора. """
 
-        if self.action in ('list', 'retrieve'):
+        if self.action in ('list', 'retrieve', 'favorite', 'shopping_cart'):
             return RecipeSerializer
         elif self.action in ('create', 'partial_update'):
             return CreateRecipeSerializer
@@ -142,28 +142,30 @@ class RecipeViewSet(ModelViewSet):
         """Общий метод для управления связями рецептов."""
         user = request.user
         recipe = get_object_or_404(Recipe, id=pk)
+        serializer = self.get_serializer(recipe)
+        try:
+            if request.method == 'POST':
+                if relation_name == 'избранном':
+                    serializer.validate_recipe_in_favorite(recipe, user)
+                else:
+                    serializer.validate_recipe_in_cart(recipe, user)
 
-        if request.method == 'POST':
-            if relation_model.objects.filter(user=user,
-                                             recipe=recipe).exists():
-                return Response(
-                    {'errors': f'Рецепт "{recipe.name}" уже в {relation_name}.'
-                     },
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-            relation_model.objects.create(user=user, recipe=recipe)
-            serializer = self.get_serializer(recipe)
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
+                relation_model.objects.create(user=user, recipe=recipe)
+                return Response(serializer.data,
+                                status=status.HTTP_201_CREATED)
 
-        if request.method == 'DELETE':
-            deleted, _ = relation_model.objects.filter(user=user,
-                                                       recipe=recipe).delete()
-            if deleted:
+            if request.method == 'DELETE':
+                if relation_name == 'избранном':
+                    serializer.validate_recipe_not_in_favorite(recipe, user)
+                else:
+                    serializer.validate_recipe_not_in_cart(recipe, user)
+
+                relation_model.objects.filter(user=user,
+                                              recipe=recipe).delete()
                 return Response(status=status.HTTP_204_NO_CONTENT)
-            return Response(
-                {'errors': f'Рецепта "{recipe.name}" нет в {relation_name}.'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+        except serializers.ValidationError as e:
+            return Response(f'{e.detail[0]}',
+                            status=status.HTTP_400_BAD_REQUEST)
 
     @action(
         detail=True,
