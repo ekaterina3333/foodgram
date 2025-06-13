@@ -28,7 +28,7 @@ class RecipeFilter(django_filters.FilterSet):
         return queryset
 
     def is_recipe_in_shoppingcart_filter(self, queryset, name, value):
-        if value == 1:
+        if value:
             user = self.request.user
             return queryset.filter(shopping_recipe__user_id=user.id)
         return queryset

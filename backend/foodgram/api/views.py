@@ -143,19 +143,18 @@ class RecipeViewSet(ModelViewSet):
         user = request.user
         recipe = get_object_or_404(Recipe, id=pk)
         serializer = self.get_serializer(recipe)
-        try:
-            if request.method == 'POST':
-                if relation_name == 'избранном':
-                    serializer.validate_recipe_in_favorite(recipe, user)
-                else:
-                    serializer.validate_recipe_in_cart(recipe, user)
+        if request.method == 'POST':
+            if relation_model == 'Favorite':
+                serializer.validate_recipe_in_favorite(recipe, user)
+            else:
+                serializer.validate_recipe_in_cart(recipe, user)
 
-                relation_model.objects.create(user=user, recipe=recipe)
-                return Response(serializer.data,
-                                status=status.HTTP_201_CREATED)
+            relation_model.objects.create(user=user, recipe=recipe)
+            return Response(serializer.data,
+                            status=status.HTTP_201_CREATED)
 
             if request.method == 'DELETE':
-                if relation_name == 'избранном':
+                if relation_model == 'Favorite':
                     serializer.validate_recipe_not_in_favorite(recipe, user)
                 else:
                     serializer.validate_recipe_not_in_cart(recipe, user)
@@ -163,9 +162,6 @@ class RecipeViewSet(ModelViewSet):
                 relation_model.objects.filter(user=user,
                                               recipe=recipe).delete()
                 return Response(status=status.HTTP_204_NO_CONTENT)
-        except serializers.ValidationError as e:
-            return Response(f'{e.detail[0]}',
-                            status=status.HTTP_400_BAD_REQUEST)
 
     @action(
         detail=True,
