@@ -1,5 +1,4 @@
 from rest_framework import serializers
-from djoser.serializers import UserSerializer
 from rest_framework.serializers import ModelSerializer
 from django.core.exceptions import ValidationError
 from drf_extra_fields.fields import Base64ImageField
