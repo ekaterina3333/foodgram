@@ -8,7 +8,6 @@ from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.decorators import action
 from rest_framework.pagination import LimitOffsetPagination
 from rest_framework import viewsets, status
-from django.urls import reverse
 
 from rest_framework.viewsets import ModelViewSet
 from djoser.views import UserViewSet
@@ -22,7 +21,7 @@ from recipes.models import (Ingredient, Tag, Recipe, Follow,
 from .serializers import (IngredientSerializer, TagSerializer,
                           UserProfileSerializer, AvatarSerializer,
                           RecipeSerializer, FollowSerializer,
-                          CreateRecipeSerializer, AddFavoritesSerializer)
+                          CreateRecipeSerializer)
 from users.models import User
 from .filters import IngredientFilter, RecipeFilter
 
