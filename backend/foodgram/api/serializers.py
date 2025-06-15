@@ -215,7 +215,7 @@ class RecipeSerializer(serializers.ModelSerializer):
     """Сериализатор для рецептов."""
 
     tags = TagSerializer(many=True)
-    author = UserSerializer()
+    author = UserProfileSerializer()
     ingredients = IngredientInRecipeSerializer(
         source='ingredient_list', many=True)
     is_favorited = serializers.SerializerMethodField()

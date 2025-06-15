@@ -66,5 +66,5 @@
 ## Автор
 
 Тяжова Екатерина https://t.me/pretenzii_syda
-Админка ekaterina 105cinos
+Админка catia.tyazhova@yandex.ru 105cinos http://fooodgramm.hopto.org/recipes
 

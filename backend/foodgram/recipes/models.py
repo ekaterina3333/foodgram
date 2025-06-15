@@ -1,3 +1,4 @@
+import shortuuid
 from django.contrib.auth import get_user_model
 from django.core.validators import MinValueValidator
 from django.db import models
@@ -48,6 +49,14 @@ class Tag(models.Model):
         unique=True,
         verbose_name='Уникальный слаг')
 
+    class Meta:
+        verbose_name = 'Тег'
+        verbose_name_plural = 'Теги'
+        ordering = ['name']
+
+    def __str__(self):
+        return self.name
+
 
 class Recipe(models.Model):
     """Модель для описания рецепта"""
@@ -90,6 +99,18 @@ class Recipe(models.Model):
             MinValueValidator(1, message='Минимальное значение 1!'),
         ]
     )
+    short_code = models.CharField(
+        max_length=22,
+        default=shortuuid.ShortUUID().random(22),
+        verbose_name='Короткий код',
+    )
+
+    class Meta:
+        verbose_name = 'Рецепт'
+        verbose_name_plural = 'Рецепты'
+
+    def __str__(self):
+        return self.name
 
 
 class Follow(models.Model):
@@ -204,12 +225,14 @@ class UserRecipeBaseModel(models.Model):
     user = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
-        verbose_name='Пользователь'
+        related_name='%(class)s',
+        verbose_name='Пользователь',
     )
     recipe = models.ForeignKey(
         Recipe,
         on_delete=models.CASCADE,
-        verbose_name='Рецепт'
+        related_name='%(class)s',
+        verbose_name='Рецепт',
     )
 
     class Meta:

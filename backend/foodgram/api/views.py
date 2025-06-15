@@ -8,6 +8,8 @@ from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.decorators import action
 from rest_framework.pagination import LimitOffsetPagination
 from rest_framework import viewsets, status
+from django.urls import reverse
+
 from rest_framework.viewsets import ModelViewSet
 from djoser.views import UserViewSet
 from rest_framework.response import Response
@@ -20,7 +22,7 @@ from recipes.models import (Ingredient, Tag, Recipe, Follow,
 from .serializers import (IngredientSerializer, TagSerializer,
                           UserProfileSerializer, AvatarSerializer,
                           RecipeSerializer, FollowSerializer,
-                          CreateRecipeSerializer)
+                          CreateRecipeSerializer, AddFavoritesSerializer)
 from users.models import User
 from .filters import IngredientFilter, RecipeFilter
 
@@ -31,7 +33,7 @@ class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Ingredient.objects.all()
     serializer_class = IngredientSerializer
     permission_classes = (AllowAny,)
-    filter_backends = (IngredientFilter)
+    filter_backends = (IngredientFilter,)
     search_fields = ('^name',)
 
 
@@ -60,12 +62,10 @@ class UserViewSet(UserViewSet):
         """Метод для создания страницы подписок"""
 
         queryset = User.objects.filter(follow__user=request.user)
-        if queryset:
-            pages = self.paginate_queryset(queryset)
-            serializer = FollowSerializer(pages, many=True,
-                                          context={'request': request})
-            return self.get_paginated_response(serializer.data)
-        return Response([], status=status.HTTP_200_OK)
+        pages = self.paginate_queryset(queryset)
+        serializer = FollowSerializer(pages, many=True,
+                                      context={'request': request})
+        return self.get_paginated_response(serializer.data)
 
     @action(
         detail=True,
@@ -138,13 +138,13 @@ class RecipeViewSet(ModelViewSet):
         return context
 
     def _manage_recipe_relation(self, request, pk,
-                                relation_model, relation_name):
+                                relation_model):
         """Общий метод для управления связями рецептов."""
         user = request.user
         recipe = get_object_or_404(Recipe, id=pk)
         serializer = self.get_serializer(recipe)
         if request.method == 'POST':
-            if relation_model == 'Favorite':
+            if relation_model.__name__ == 'Favorite':
                 serializer.validate_recipe_in_favorite(recipe, user)
             else:
                 serializer.validate_recipe_in_cart(recipe, user)
@@ -153,15 +153,14 @@ class RecipeViewSet(ModelViewSet):
             return Response(serializer.data,
                             status=status.HTTP_201_CREATED)
 
-            if request.method == 'DELETE':
-                if relation_model == 'Favorite':
-                    serializer.validate_recipe_not_in_favorite(recipe, user)
-                else:
-                    serializer.validate_recipe_not_in_cart(recipe, user)
+        if request.method == 'DELETE':
+            if relation_model.__name__ == 'Favorite':
+                serializer.validate_recipe_not_in_favorite(recipe, user)
+            else:
+                serializer.validate_recipe_not_in_cart(recipe, user)
 
-                relation_model.objects.filter(user=user,
-                                              recipe=recipe).delete()
-                return Response(status=status.HTTP_204_NO_CONTENT)
+            relation_model.objects.filter(user=user, recipe=recipe).delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(
         detail=True,
@@ -173,7 +172,7 @@ class RecipeViewSet(ModelViewSet):
     def favorite(self, request, pk):
         """Метод для управления избранными рецептами."""
         return self._manage_recipe_relation(
-            request, pk, Favorite, 'избранном'
+            request, pk, Favorite
         )
 
     @action(
@@ -186,7 +185,7 @@ class RecipeViewSet(ModelViewSet):
     def shopping_cart(self, request, pk):
         """Метод для управления списком покупок."""
         return self._manage_recipe_relation(
-            request, pk, ShoppingCart, 'списке покупок'
+            request, pk, ShoppingCart
         )
 
     @staticmethod
@@ -214,10 +213,19 @@ class RecipeViewSet(ModelViewSet):
          для выбранных рецептов"""
 
         ingredients = IngredientInRecipe.objects.filter(
-            recipe__shopping_recipe__user=request.user
+            recipe__shoppingcart__user=request.user
         ).values(
             'ingredient__name',
             'ingredient__measurement_unit'
         ).annotate(sum=Sum('amount'))
         shopping_list = self.ingredients_to_txt(ingredients)
         return HttpResponse(shopping_list, content_type='text/plain')
+
+    @action(
+        detail=True, methods=['get'], url_path='get-link'
+    )
+    def get_short_link(self, request, pk=None):
+        recipe = get_object_or_404(Recipe, id=pk)
+        short_code = recipe.short_code
+        short_link = f"https://{request.get_host()}/s/{short_code}"
+        return Response({'short-link': short_link}, status=status.HTTP_200_OK)
