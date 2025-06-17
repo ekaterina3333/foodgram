@@ -8,11 +8,8 @@ services:
     image: postgres:13
     
     container_name: foodgram_db
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: foodgram
-      POSTGRES_HOST: db
+    env_file:
+      - ../.env
     volumes:
       - pg_data:/var/lib/postgresql/data
     restart: always
@@ -27,7 +24,7 @@ services:
     depends_on:
       - db
     volumes:
-      - static:/backend_static
+      - static:/app/static
       - media:/app/media
       - ../data:/app/data
     expose:

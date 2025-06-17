@@ -3,7 +3,8 @@ from django.http import HttpResponse
 from rest_framework.permissions import (
     AllowAny, IsAuthenticatedOrReadOnly, IsAuthenticated
 )
-from django.shortcuts import get_object_or_404
+from django.urls import reverse
+from django.shortcuts import get_object_or_404, redirect
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.decorators import action
 from rest_framework.pagination import LimitOffsetPagination
@@ -24,6 +25,15 @@ from .serializers import (IngredientSerializer, TagSerializer,
                           CreateRecipeSerializer)
 from users.models import User
 from .filters import IngredientFilter, RecipeFilter
+
+
+def redirect_short_link(request, short_code):
+    """Перенаправление по короткой ссылке на рецепт."""
+    try:
+        recipe = Recipe.objects.get(short_code=short_code)
+        return redirect(f'/recipes/{recipe.pk}/')
+    except Recipe.DoesNotExist:
+        return redirect('/404/')
 
 
 class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
@@ -143,7 +153,7 @@ class RecipeViewSet(ModelViewSet):
         recipe = get_object_or_404(Recipe, id=pk)
         serializer = self.get_serializer(recipe)
         if request.method == 'POST':
-            if relation_model.__name__ == 'Favorite':
+            if relation_model is Favorite:
                 serializer.validate_recipe_in_favorite(recipe, user)
             else:
                 serializer.validate_recipe_in_cart(recipe, user)
@@ -153,7 +163,7 @@ class RecipeViewSet(ModelViewSet):
                             status=status.HTTP_201_CREATED)
 
         if request.method == 'DELETE':
-            if relation_model.__name__ == 'Favorite':
+            if relation_model is Favorite:
                 serializer.validate_recipe_not_in_favorite(recipe, user)
             else:
                 serializer.validate_recipe_not_in_cart(recipe, user)
@@ -221,10 +231,19 @@ class RecipeViewSet(ModelViewSet):
         return HttpResponse(shopping_list, content_type='text/plain')
 
     @action(
-        detail=True, methods=['get'], url_path='get-link'
+        detail=True,
+        methods=['get'],
+        url_path='get-link',
     )
-    def get_short_link(self, request, pk=None):
-        recipe = get_object_or_404(Recipe, id=pk)
-        short_code = recipe.short_code
-        short_link = f"https://{request.get_host()}/s/{short_code}"
-        return Response({'short-link': short_link}, status=status.HTTP_200_OK)
+    def get_link(self, request, pk=None):
+        recipe = get_object_or_404(Recipe, pk=pk)
+        short_url = request.build_absolute_uri(
+            reverse(
+                'redirect_short_link',
+                kwargs={'short_code': recipe.short_code},
+            )
+        )
+        return Response(
+            {'short-link': short_url},
+            status=status.HTTP_200_OK,
+        )

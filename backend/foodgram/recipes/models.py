@@ -3,7 +3,7 @@ from django.contrib.auth import get_user_model
 from django.core.validators import MinValueValidator
 from django.db import models
 
-from .constants import MAX_LENGTH, MAX_LENGTH_TAG
+from .constants import MAX_LENGTH, MAX_LENGTH_TAG, UUID_MAX_LENGTH
 
 User = get_user_model()
 

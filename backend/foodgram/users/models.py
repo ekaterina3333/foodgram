@@ -1,5 +1,6 @@
 from django.contrib.auth.models import AbstractUser
 from django.contrib.auth.validators import UnicodeUsernameValidator
+from django.core.validators import validate_email
 from django.db import models
 
 from .constants import MAX_LENGTH_EMAIL, MAX_LENGTH
@@ -8,10 +9,11 @@ from .constants import MAX_LENGTH_EMAIL, MAX_LENGTH
 class User(AbstractUser):
     """Модель для пользователей созданная для приложения foodgram"""
 
-    email = models.CharField(
+    email = models.EmailField(
         max_length=MAX_LENGTH_EMAIL,
         verbose_name='Адрес электронной почты',
-        unique=True
+        unique=True,
+        validators=[validate_email]
     )
     username = models.CharField(
         max_length=MAX_LENGTH,

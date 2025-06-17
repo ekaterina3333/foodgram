@@ -1,8 +1,8 @@
-from django_filters.rest_framework import (AllValuesMultipleFilter,
+from django_filters.rest_framework import (ModelMultipleChoiceFilter,
                                            BooleanFilter, FilterSet)
 from rest_framework.filters import SearchFilter
 
-from recipes.models import Recipe
+from recipes.models import Recipe, Tag
 
 
 class IngredientFilter(SearchFilter):
@@ -14,10 +14,11 @@ class IngredientFilter(SearchFilter):
 class RecipeFilter(FilterSet):
     """Фильтр для рецептов."""
 
-    tags = AllValuesMultipleFilter(
+    tags = ModelMultipleChoiceFilter(
+        queryset=Tag.objects.all(),
         field_name='tags__slug',
-        help_text='Фильтрация по слагам тегов',
-    )
+        to_field_name='slug')
+
     is_favorited = BooleanFilter(
         method='is_recipe_in_favorites_filter'
     )
