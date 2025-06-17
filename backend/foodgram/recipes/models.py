@@ -100,8 +100,8 @@ class Recipe(models.Model):
         ]
     )
     short_code = models.CharField(
-        max_length=22,
-        default=shortuuid.ShortUUID().random(22),
+        max_length=UUID_MAX_LENGTH,
+        default=shortuuid.ShortUUID().random(UUID_MAX_LENGTH),
         verbose_name='Короткий код',
     )
 
