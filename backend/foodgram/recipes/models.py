@@ -8,6 +8,10 @@ from .constants import MAX_LENGTH, MAX_LENGTH_TAG, UUID_MAX_LENGTH
 User = get_user_model()
 
 
+def generate_short_uuid():
+    return shortuuid.ShortUUID().random(UUID_MAX_LENGTH)
+
+
 class Ingredient(models.Model):
     """Модель для описания ингредиента"""
 
@@ -70,16 +74,21 @@ class Recipe(models.Model):
     name = models.CharField(
         max_length=MAX_LENGTH,
         default="Без названия",
-        verbose_name='Название рецепта'
+        verbose_name='Название рецепта',
+        blank=False,
+        null=False,
     )
     image = models.ImageField(
         verbose_name='Фотография рецепта',
         upload_to='recipes/',
-        blank=True
+        blank=False,
+        null=False
     )
     text = models.TextField(
         verbose_name='Описание рецепта',
         default="Без описания",
+        blank=False,
+        null=False
     )
     ingredients = models.ManyToManyField(
         Ingredient,
@@ -101,7 +110,8 @@ class Recipe(models.Model):
     )
     short_code = models.CharField(
         max_length=UUID_MAX_LENGTH,
-        default=shortuuid.ShortUUID().random(UUID_MAX_LENGTH),
+        unique=True,
+        default=generate_short_uuid,
         verbose_name='Короткий код',
     )
 
