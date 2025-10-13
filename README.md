@@ -63,8 +63,5 @@
 - Django 3.2.16
 - Django REST framework 3.14.0
 - JavaScript
-## Автор
 
-Тяжова Екатерина https://t.me/pretenzii_syda
-Админка catia.tyazhova@yandex.ru 105cinos http://fooodgramm.hopto.org/recipes
 
